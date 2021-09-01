@@ -223,6 +223,8 @@ pub struct VerifyResult {
     code_answer: Vec<String>,
     #[serde(default, deserialize_with = "ssr")]
     code_output: Vec<String>,
+    #[serde(default, deserialize_with = "ssr")]
+    expected_output: Vec<String>,
     #[serde(default)]
     std_output: String,
 
@@ -245,12 +247,12 @@ impl std::fmt::Display for VerifyResult {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let ca = match &self.code_answer.len() {
             1 => self.code_answer[0].to_string(),
-            _ => self.code_answer.join(""),
+            _ => self.code_answer.join("↩ "),
         };
 
         let eca = match &self.expected.expected_code_answer.len() {
             1 => self.expected.expected_code_answer[0].to_string(),
-            _ => self.expected.expected_code_answer.join(""),
+            _ => self.expected.expected_code_answer.join("↩ "),
         };
 
         debug!("{:#?}", &self);
@@ -314,9 +316,9 @@ impl std::fmt::Display for VerifyResult {
                          {}.\n\n\
                          {}{}\
                          , less than \
-                         {}{} \
+                         {}{}\
                          of \
-                         {}{}.\n\n",
+                         {} {}.\n\n",
                         "Success\n\n".green().bold(),
                         "Runtime: ".dimmed(),
                         &self.status.status_runtime.bold(),
@@ -351,7 +353,7 @@ impl std::fmt::Display for VerifyResult {
             // Failed some tests during submission
             11 => write!(
                 f,
-                "\n{}\n\n{}{}\n{}{}\n{}{}\n",
+                "\n{}\n\n{}{}\n{}{}\n{}{}{}{}{}{}\n",
                 &self.status.status_msg.red().bold(),
                 "Cases passed:".after_spaces(2).green(),
                 &self
@@ -371,7 +373,19 @@ impl std::fmt::Display for VerifyResult {
                     .bold()
                     .yellow(),
                 &"Last case:".after_spaces(5).dimmed(),
-                &self.submit.last_testcase.replace("\n", "↩ ").dimmed()
+                &self.submit.last_testcase.replace("\n", "↩ ").dimmed(),
+                &"\nOutput:".after_spaces(8),
+                self.code_output[0],
+                &"\nExpected:".after_spaces(6),
+                self.expected_output[0],
+            )?,
+            // Memory Exceeded
+            12 => write!(
+                f,
+                "\n{}\n\n{}{}\n",
+                &self.status.status_msg.yellow().bold(),
+                &"Last case:".after_spaces(5).dimmed(),
+                &self.data_input.replace("\n", "↩ "),
             )?,
             // Output Timeout Exceeded
             //

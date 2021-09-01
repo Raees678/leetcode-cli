@@ -65,6 +65,7 @@ static LIST_AFTER_HELP: &str = r#"EXAMPLES:
     leetcode list -c database       List questions that in database category
     leetcode list -q eD             List questions that with easy level and not done
     leetcode list -t linked-list    List questions that under tag "linked-list"
+    leetcode list -r 50 100         List questions that has id in between 50 and 100
 "#;
 
 /// implement Command trait for `list`
@@ -95,6 +96,14 @@ impl Command for ListCommand {
                     .long("query")
                     .takes_value(true)
                     .help(QUERY_HELP),
+            )
+            .arg(
+                Arg::with_name("range")
+                    .short("r")
+                    .long("range")
+                    .takes_value(true)
+                    .min_values(2)
+                    .help("Filter questions by id range"),
             )
             .after_help(LIST_AFTER_HELP)
             .arg(
@@ -163,9 +172,20 @@ impl Command for ListCommand {
             crate::helper::filter(&mut ps, query.to_string());
         }
 
+        // filter range
+        if m.is_present("range") {
+            let range: Vec<_> = m.values_of("range")?.collect();
+            let num_range: Vec<i32> = range
+                .into_iter()
+                .map(|x| x.parse::<i32>().unwrap_or(0))
+                .collect();
+            ps.retain(|x| num_range[0] <= x.fid && x.fid <= num_range[1]);
+        }
+
         // retain if keyword exists
         if let Some(keyword) = m.value_of("keyword") {
-            ps.retain(|x| x.name.contains(&keyword));
+            let lowercase_kw = keyword.to_lowercase();
+            ps.retain(|x| x.name.to_lowercase().contains(&lowercase_kw));
         }
 
         let out: Vec<String> = ps.iter().map(ToString::to_string).collect();
